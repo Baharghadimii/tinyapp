@@ -53,7 +53,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 
 //function for random short url
-const generateRandomString = function (length) {
+const generateRandomString = function(length) {
 
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
