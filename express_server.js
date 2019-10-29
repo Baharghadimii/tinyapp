@@ -34,19 +34,26 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { shortURL: req.params.shortURL, longURL: 'http://www.lighthouselabs.ca' };
   res.render("urls_show", templateVars);
 });
+//generate random short url via submit
 app.post("/urls", (req, res) => {
   const shrtURL = generateRandomString(6);
   urlDatabase[shrtURL] = req.body.longURL;
   res.redirect(`/urls/${shrtURL}`);
 });
+
+//redirect to long url
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
+  if (urlDatabase[req.params.shortURL]) {
+    const longURL = urlDatabase[req.params.shortURL];
+    res.redirect(longURL);
+  } else {
+    res.send("<html><body>Wrong <b>URL </b></body></html>\n");
+  }
 });
 
 
 //function for random short url
-const generateRandomString = function(length) {
+const generateRandomString = function (length) {
 
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
