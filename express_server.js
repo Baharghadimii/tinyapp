@@ -36,8 +36,12 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 //generate random short url via submit
 app.post("/urls", (req, res) => {
+  let longURL = req.body.longURL;
   const shrtURL = generateRandomString(6);
-  urlDatabase[shrtURL] = req.body.longURL;
+  if (!req.body.longURL.includes('https://')) {
+    longURL = "https://" + longURL;
+  }
+  urlDatabase[shrtURL] = longURL;
   res.redirect(`/urls/${shrtURL}`);
 });
 app.post('/urls/:shortURL/delete', (req, res) => {
@@ -47,14 +51,30 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
 //redirect to long url
 app.get("/u/:shortURL", (req, res) => {
-  if (urlDatabase[req.params.shortURL]) {
-    const longURL = urlDatabase[req.params.shortURL];
+  let longURL = urlDatabase[req.params.shortURL];
+  if (longURL) {
     res.redirect(longURL);
   } else {
     res.send("<html><body>Wrong <b>URL </b></body></html>\n");
   }
 });
-
+//redirect to generating page
+app.post('/urls/:shortURL/update', (req, res) => {
+  res.redirect(`/urls/${req.params.shortURL}`);
+});
+//make new url and replace if with the old one
+app.post('/urls/update', (req, res) => {
+  let newKey = generateRandomString(6);
+  for (let key in urlDatabase) {
+    if (urlDatabase[key] === req.body.url)
+      if (key !== newKey) {
+        Object.defineProperty(urlDatabase, newKey,
+          Object.getOwnPropertyDescriptor(urlDatabase, key));
+        delete urlDatabase[key];
+      }
+  }
+  res.redirect(`/urls`);
+});
 
 //function for random short url
 const generateRandomString = function (length) {
