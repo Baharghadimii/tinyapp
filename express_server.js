@@ -72,22 +72,16 @@ app.get("/u/:shortURL", (req, res) => {
   }
 });
 //redirect to generating page
-app.post('/urls/:shortURL/update', (req, res) => {
+app.post('/urls/:shortURL', (req, res) => {
   res.redirect(`/urls/${req.params.shortURL}`);
 });
+
 //make new url and replace if with the old one
-app.post('/urls/update', (req, res) => {
-  let newKey = generateRandomString(6);
-  for (let key in urlDatabase) {
-    if (urlDatabase[key] === req.body.url)
-      if (key !== newKey) {
-        Object.defineProperty(urlDatabase, newKey,
-          Object.getOwnPropertyDescriptor(urlDatabase, key));
-        delete urlDatabase[key];
-      }
-  }
+app.post('/urls/:shortURL/update', (req, res) => {
+  urlDatabase[req.params.shortURL] = req.body.url;
   res.redirect(`/urls`);
 });
+//add cookie
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
   res.redirect('urls');
