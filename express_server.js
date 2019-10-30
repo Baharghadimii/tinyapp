@@ -88,8 +88,12 @@ app.post('/login', (req, res) => {
 });
 //add cookie--logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('username' , req.body.username);
+  res.clearCookie('username', req.body.username);
   res.redirect('urls');
+});
+//registration page
+app.get('/register', (req, res) => {
+  res.render('user_pass');
 });
 //function for random short url
 const generateRandomString = function (length) {
