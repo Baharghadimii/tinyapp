@@ -81,12 +81,16 @@ app.post('/urls/:shortURL/update', (req, res) => {
   urlDatabase[req.params.shortURL] = req.body.url;
   res.redirect(`/urls`);
 });
-//add cookie
+//add cookie--login
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
   res.redirect('urls');
 });
-
+//add cookie--logout
+app.post('/logout', (req, res) => {
+  res.clearCookie('username' , req.body.username);
+  res.redirect('urls');
+});
 //function for random short url
 const generateRandomString = function (length) {
 
