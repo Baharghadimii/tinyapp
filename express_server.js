@@ -11,9 +11,24 @@ app.use(cookieParser());
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
+//urls object
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
+};
+
+//user data object
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
 };
 
 //handle request and response
@@ -93,7 +108,26 @@ app.post('/logout', (req, res) => {
 });
 //registration page
 app.get('/register', (req, res) => {
-  res.render('user_pass');
+  res.render('register');
+});
+app.post('/register', (req, res) => {
+  if (req.body.email && req.body.password) {
+    if (!hasEmail(req.body.email)) {
+      const userId = generateRandomString(5);
+      users[userId] = {};
+      users[userId]['id'] = userId;
+      users[userId]['email'] = req.body.email;
+      users[userId]['password'] = req.body.password;
+      res.cookie('user_id', userId);
+      res.redirect('/urls');
+    } else {
+      res.status(400).send('Error: 400');
+    }
+
+  } else {
+    res.status(400).send('Error: 400');
+  }
+
 });
 //function for random short url
 const generateRandomString = function (length) {
@@ -105,6 +139,16 @@ const generateRandomString = function (length) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
+
+};
+const hasEmail = function (email) {
+  let condition = false;
+  for (let key in users) {
+    if (users[key]['email'] === email) {
+      condition = true;
+    }
+  }
+  return condition;
 
 };
 
