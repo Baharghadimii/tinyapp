@@ -4,23 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Register</title>
+  <title>Login</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
 
 </head>
 <body>
   <% include ./partials/_header.ejs %>
   <main style="margin: 1em;">
-      <h2>Create Account</h2>
+      <h2>Login</h2>
         <h6>Email address</h6>
-      <form action="/register" method="POST">
+      <form action="/login" method="POST">
         <div class="form-group mb-2">
-          <input class="form-control" type="email" name="username" placeholder="Enter email" style="width: 300px;margin-bottom: 30px;" required>
+          <input class="form-control" type="email" name="username" placeholder="Enter email" style="width: 300px;margin-bottom: 30px;">
         </div>
       <h6>Password</h6>
         <div class="form-group mb-2">
-          <input class="form-control" type="password" name="password" placeholder="Password" style="width: 300px;margin-bottom: 30px;" required>
-          <button type="submit" class="btn btn-primary">Register</button>
+          <input class="form-control" type="password" name="password" placeholder="Password" style="width: 300px;margin-bottom: 30px;">
+          <button type="submit" class="btn btn-primary">Login</button>
         </div>
       </form>
     </main>
