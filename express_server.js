@@ -26,6 +26,8 @@ const users = {
   },
 };
 
+let isLogged = false;
+
 //handle request and response
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -40,32 +42,42 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = {};
-  for (const userId in users) {
-    if (userId === req.cookies.user_id) {
-      user['username'] = users[userId].username;
+  if (isLogged) {
+    const user = {};
+    for (const userId in users) {
+      if (userId === req.cookies.user_id) {
+        user['username'] = users[userId].username;
+      }
     }
-  }
-  const templateVars = {
-    urls: urlDatabase,
-    username: user.username,
-  };
+    const templateVars = {
+      urls: urlDatabase,
+      username: user.username,
+    };
 
-  res.render("urls_index", templateVars);
+    res.render("urls_index", templateVars);
+  } else {
+    res.redirect('/login');
+  }
+
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = {};
-  for (const userId in users) {
-    if (userId === req.cookies.user_id) {
-      user['username'] = users[userId].username;
+  if (isLogged) {
+    const user = {};
+    for (const userId in users) {
+      if (userId === req.cookies.user_id) {
+        user['username'] = users[userId].username;
+      }
     }
+    const templateVars = {
+      urls: urlDatabase,
+      username: user.username,
+    };
+
+    res.render("urls_index", templateVars);
+  } else {
+    res.redirect('/login');
   }
-  const templateVars = {
-    urls: urlDatabase,
-    username: user.username,
-  };
-  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
@@ -134,6 +146,7 @@ app.post('/login', (req, res) => {
     if (user.username === username) {
       if (user.password === password) {
         // log the user in (return) res.send
+        isLogged = true;
         res.redirect('/urls');
       } else {
         // passwords don't match res.send
@@ -150,17 +163,16 @@ app.post('/login', (req, res) => {
 //add cookie--logout
 app.post('/logout', (req, res) => {
   res.clearCookie('username', req.body.username);
+  isLogged = false;
   res.redirect('/login');
 });
 //registration page
 app.get('/register', (req, res) => {
   // console.log(users);
-  let templateVars = { username: ""};
+  let templateVars = { username: "" };
   res.render('register', templateVars);
 });
 app.post('/register', (req, res) => {
-
-  console.log(hasEmail(req.body.username));
   if (!hasEmail(req.body.username)) {
     const userId = generateRandomString(5);
     users[userId] = {};
@@ -168,6 +180,7 @@ app.post('/register', (req, res) => {
     users[userId]['username'] = req.body.username;
     users[userId]['password'] = req.body.password;
     res.cookie('user_id', userId);
+    isLogged = true;
     res.redirect('/urls');
   } else {
     res.send(`"<html><body>You've Already registered! </b></body></html>\n"`);
@@ -195,6 +208,7 @@ const hasEmail = function (email) {
   return condition;
 
 };
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
