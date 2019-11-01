@@ -13,8 +13,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 //urls object
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
 };
 
 //user data object
@@ -53,10 +53,10 @@ app.get("/urls", (req, res) => {
       urls: urlDatabase,
       username: user.username,
     };
-
     res.render("urls_index", templateVars);
   } else {
-    res.redirect('/login');
+    res.send(`"<html><body>You must login first! </b></body></html>\n"`);
+
   }
 
 });
@@ -70,13 +70,12 @@ app.get("/urls/new", (req, res) => {
       }
     }
     const templateVars = {
-      urls: urlDatabase,
       username: user.username,
     };
 
-    res.render("urls_index", templateVars);
+    res.render("urls_new", templateVars);
   } else {
-    res.redirect('/login');
+    res.send(`"<html><body>You must login first! </b></body></html>\n"`);
   }
 });
 
@@ -87,9 +86,10 @@ app.get("/urls/:shortURL", (req, res) => {
       user['username'] = users[userId].username;
     }
   }
+
   let templateVars = {
     shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
+    longURL: urlDatabase[req.params.shortURL]['longURL'],
     username: user.username
   };
   res.render("urls_show", templateVars);
@@ -98,22 +98,30 @@ app.get("/urls/:shortURL", (req, res) => {
 //generate random short url via submit
 app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
+  const userId = req.cookies.user_id;
   const shrtURL = generateRandomString(6);
   if (!req.body.longURL.includes('https://')) {
     longURL = "https://" + longURL;
   }
-  urlDatabase[shrtURL] = longURL;
+  urlDatabase[shrtURL] = { longURL, userId };
   res.redirect(`/urls/${shrtURL}`);
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect(`/urls`);
+
+  if (req.cookies.user_id === urlDatabase[req.params.shortURL].userId) {
+    delete urlDatabase[req.params.shortURL];
+    res.redirect(`/urls`);
+  } else {
+    res.send(`"<html><body>You are not allowed to delete or update this URL! </b></body></html>\n"`);
+  }
+
 });
 
 //redirect to long url
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL];
+  let longURL = urlDatabase[req.params.shortURL].longURL;
+  console.log(longURL);
   if (longURL) {
     res.redirect(longURL);
   } else {
@@ -123,12 +131,15 @@ app.get("/u/:shortURL", (req, res) => {
 
 //redirect to generating page
 app.post('/urls/:shortURL', (req, res) => {
+
   res.redirect(`/urls/${req.params.shortURL}`);
 });
 
 //make new url and replace if with the old one
 app.post('/urls/:shortURL/update', (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.url;
+  const longURL = req.body.url;
+  const userId = req.cookies.user_id;
+  urlDatabase[req.params.shortURL] = { longURL, userId };
   res.redirect(`/urls`);
 });
 
@@ -168,7 +179,6 @@ app.post('/logout', (req, res) => {
 });
 //registration page
 app.get('/register', (req, res) => {
-  // console.log(users);
   let templateVars = { username: "" };
   res.render('register', templateVars);
 });
