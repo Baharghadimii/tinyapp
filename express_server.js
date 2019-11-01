@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 const app = express();
 
 const PORT = 8080; // default port 8080
@@ -121,7 +122,6 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 //redirect to long url
 app.get("/u/:shortURL", (req, res) => {
   let longURL = urlDatabase[req.params.shortURL].longURL;
-  console.log(longURL);
   if (longURL) {
     res.redirect(longURL);
   } else {
@@ -155,7 +155,8 @@ app.post('/login', (req, res) => {
   for (const userId in users) {
     const user = users[userId];
     if (user.username === username) {
-      if (user.password === password) {
+      console.log(user.password);
+      if (bcrypt.compareSync(password, user.password)) {
         // log the user in (return) res.send
         isLogged = true;
         res.redirect('/urls');
@@ -188,7 +189,8 @@ app.post('/register', (req, res) => {
     users[userId] = {};
     users[userId]['id'] = userId;
     users[userId]['username'] = req.body.username;
-    users[userId]['password'] = req.body.password;
+    users[userId]['password'] = bcrypt.hashSync(req.body.password, 10);
+    // users[userId]['password'] = req.body.password;
     res.cookie('user_id', userId);
     isLogged = true;
     res.redirect('/urls');
