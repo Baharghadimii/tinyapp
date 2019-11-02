@@ -14,7 +14,7 @@ const generateRandomString = function (length) {
 const getUserByEmail = function (email, database) {
   // lookup magic...
   for (const user in database) {
-    if (database[user]['email'] === email) {
+    if (database[user]['username'] === email) {
       return user;
     }
   }

@@ -5,8 +5,8 @@ const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const app = express();
 const bodyParser = require("body-parser");
-const {generateRandomString} = require('./helpers');
-const {getUserByEmail} = require('./helpers');
+const { generateRandomString } = require('./helpers');
+const { getUserByEmail } = require('./helpers');
 
 const PORT = 8080;
 
@@ -21,8 +21,8 @@ app.use(cookieSession({
 
 //urls object
 const urlDatabase = {
-  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
+  b6UTxQ: { longURL: "https://www.tsn.ca", userId: "aJ48lW" },
+  i3BoGr: { longURL: "https://www.google.ca", userId: "aJ48lW" }
 };
 
 //user data object
@@ -63,35 +63,26 @@ app.get("/urls", (req, res) => {
 
 app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
+
+  if (!longURL.includes('https://')) {
+    longURL = `https://${longURL}`;
+  }
   const userId = req.session.user_id;
   const shrtURL = generateRandomString(6);
   let isFound = false;
   for (const id in urlDatabase) {
     if (urlDatabase[id].longURL === longURL) {
       isFound = true;
-      res.send(`<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="ie=edge">
-        <title>Register</title>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">      
-      </head>
-      <body>
-        <main style="margin: 1em;">
-      <h2>You've already added this URL!</h2>
-      <form action="/urls/new" method="POST">
-        <button type="submit" class="btn btn-primary">Back</button>
-      </form>
-          </main>
-      </body>
-      </html>`);
+      const templateVar = { username: users[req.session.user_id].username };
+
+      //render a page with error message
+      res.render('not_new_url', templateVar);
     }
   }
   if (!isFound) {
     urlDatabase[shrtURL] = { longURL, userId };
-    res.redirect(`/urls`);
+
+    res.redirect(`/urls/${shrtURL}`);
   }
 
 });
@@ -115,32 +106,99 @@ app.get("/urls/new", (req, res) => {
 
   }
 });
-
-app.post('/urls/:shortURL', (req, res) => {
-  res.redirect(`/urls`);
-});
-
-app.get("/u/:shortURL", (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
-  res.redirect(longURL);
-
-});
 //show long URL and short URL page
 app.get("/urls/:shortURL", (req, res) => {
   const user = {};
-  for (const userId in users) {
-    if (userId === req.session.user_id) {
-      user['username'] = users[userId].username;
+
+  //check if the user is logged in
+  if (isLogged) {
+
+    //check if the url is in database
+    if (!urlDatabase[req.params.shortURL]) {
+      const templateVar = { username: users[req.session.user_id].username };
+
+      //render a page with error message
+      res.render('not_valid_url', templateVar);
+
     }
+    //check if the user owns the url
+    if (req.session.user_id !== urlDatabase[req.params.shortURL].userId) {
+      const templateVar = { username: users[req.session.user_id].username };
+
+      //render a page with error message
+      res.render('not_access', templateVar);
+    }
+    for (const userId in users) {
+
+      if (users[userId]['id'] === req.session.user_id) {
+        user['username'] = users[userId].username;
+      }
+    }
+
+    let templateVars = {
+      shortURL: req.params.shortURL,
+      longURL: urlDatabase[req.params.shortURL]['longURL'],
+      username: user.username
+    };
+
+    // console.log(templateVars);
+    res.render("urls_show", templateVars);
+
+  } else {
+    const templateVars = {
+      username: '',
+    };
+    res.render("not_logged_in", templateVars);
   }
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL]['longURL'],
-    username: user.username
-  };
-  res.render("urls_show", templateVars);
 
 });
+
+app.post('/urls/:shortURL', (req, res) => {
+
+  const longURL = req.body.url;
+
+  const userId = req.session.user_id;
+  if (req.session.user_id === urlDatabase[req.params.shortURL].userId) {
+
+    urlDatabase[req.params.shortURL] = { longURL, userId };
+    res.redirect(`/urls`);
+
+  } else {
+    const templateVar = { username: users[req.session.user_id].username };
+
+    //render a page with error message
+    res.render('not_allowed', templateVar);
+  }
+
+});
+
+app.get("/u/:shortURL", (req, res) => {
+
+  //check if the url is valid
+  if (!urlDatabase[req.params.shortURL]) {
+    const templateVar = { username: users[req.session.user_id].username };
+
+    //render a page with error message
+    res.render('not_valid_url', templateVar);
+
+  } else {
+
+    //check if the user owns the URL
+    if (req.session.user_id === urlDatabase[req.params.shortURL].userId) {
+      let longURL = urlDatabase[req.params.shortURL].longURL;
+      res.redirect(longURL);
+    } else {
+      const templateVar = { username: users[req.session.user_id].username };
+
+      //render a page with error message
+      res.render('not_access', templateVar);
+
+    }
+
+  }
+});
+
+
 //edit and delete posts
 app.post('/urls/:shortURL/delete', (req, res) => {
 
@@ -148,54 +206,10 @@ app.post('/urls/:shortURL/delete', (req, res) => {
     delete urlDatabase[req.params.shortURL];
     res.redirect(`/urls`);
   } else {
-    res.send(`<!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta http-equiv="X-UA-Compatible" content="ie=edge">
-      <title>Register</title>
-      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-    
-    </head>
-    <body>
-      <main style="margin: 1em;">
-    <h2>You are not allowed to edit or delete this URL!</h2>
-    <form action="/urls" method="GET">
-      <button type="submit" class="btn btn-primary">Back</button>
-    </form>
-        </main>
-    </body>
-    </html>`);
-  }
+    const templateVar = { username: users[req.session.user_id].username };
 
-});
-app.post('/urls/:shortURL/update', (req, res) => {
-  const longURL = req.body.url;
-  const userId = req.session.user_id;
-  if (req.session.user_id === urlDatabase[req.params.shortURL].userId) {
-    urlDatabase[req.params.shortURL] = { longURL, userId };
-    res.redirect(`/urls`);
-  } else {
-    res.send(`<!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta http-equiv="X-UA-Compatible" content="ie=edge">
-      <title>Register</title>
-      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-
-    </head>
-    <body>
-      <main style="margin: 1em;">
-    <h2>You are not allowed to edit or delete this URL!</h2>
-    <form action="/urls" method="GET">
-      <button type="submit" class="btn btn-primary">Back</button>
-    </form>
-        </main>
-    </body>
-    </html>`);
+    //render a page with error message
+    res.render('not_allowed', templateVar);
   }
 
 });
@@ -203,7 +217,8 @@ app.post('/urls/:shortURL/update', (req, res) => {
 //get for login
 app.get('/login', (req, res) => {
   if (isLogged) {
-    res.redirect('urls');
+    const templateVars = { username: users[req.session.user_id].username };
+    res.render('not_logged_out', templateVars);
   } else {
     let templateVars = { username: "" };
     res.render('login', templateVars);
@@ -227,8 +242,8 @@ app.post('/login', (req, res) => {
     }
   }
   // final response
-  res.redirect('/register');
-
+  const templateVars = { username: '' };
+  res.render('not_correct_user_pass', templateVars);
 });
 
 //add cookie--logout
@@ -242,9 +257,10 @@ app.post('/logout', (req, res) => {
 app.get('/register', (req, res) => {
   let templateVars = { username: "" };
 
-  //check if the user is registered before
+  //check if the user is logged in
   if (isLogged) {
-    res.redirect('/urls');
+    const templateVars = { username: users[req.session.user_id]['username'] };
+    res.render('not_logged_out', templateVars);
   } else {
 
     res.render('register', templateVars);
