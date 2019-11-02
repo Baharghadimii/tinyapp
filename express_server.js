@@ -46,13 +46,11 @@ app.get("/urls", (req, res) => {
     username: '',
     urls: urlDatabase
   };
+  //check if the user is logged in
   if (isLogged) {
-    for (const userId in users) {
-      if (userId === req.session.user_id) {
-        templateVars['username'] = users[userId].username;
-      }
+    if (users[req.session.user_id]) {
+      templateVars['username'] = users[req.session.user_id].username;
     }
-
     res.render("urls_index", templateVars);
 
   } else {
@@ -92,12 +90,9 @@ app.get("/urls/new", (req, res) => {
     username: '',
   };
   if (isLogged) {
-    for (const userId in users) {
-      if (userId === req.session.user_id) {
-        templateVars['username'] = users[userId].username;
-      }
+    if (users[req.session.user_id]) {
+      templateVars['username'] = users[req.session.user_id].username;
     }
-
 
     res.render("urls_new", templateVars);
   } else {
