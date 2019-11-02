@@ -24,7 +24,7 @@
       <h5 class="card-title" style="font-size: 30px;color: grey">Edit</h5>
       <form method="POST" action="/urls/<%= shortURL %>/update">
         <label>New URL: </label>
-        <input type="text" name="url" placeholder="<%= longURL %>">
+        <input type="text" name="url" placeholder="<%= longURL %>" required>
         <input type="submit" name="submit" style="background-color:#0081d1;color: white;padding: 10px;border-radius: 5px;border-color:#0081d1">
       </form>
     </div>
