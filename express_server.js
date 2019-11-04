@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 //setup
 const express = require("express");
 const cookieSession = require('cookie-session');
@@ -7,6 +6,8 @@ const app = express();
 const bodyParser = require("body-parser");
 const { generateRandomString } = require('./helpers');
 const { getUserByEmail } = require('./helpers');
+const { urldForUsers } = require('./helpers');
+const { isNewUrl } = require('./helpers');
 
 const PORT = 8080;
 
@@ -27,7 +28,7 @@ const urlDatabase = {
 
 //user data object
 const users = {
-  "userRandomID": {
+  "2br03": {
     id: "userRandomID",
     username: "user@example.com",
     password: "purple-monkey-dinosaur"
@@ -35,19 +36,21 @@ const users = {
 };
 
 //boolean variable to check if the user is logged in
-let isLogged = false;
 
 app.get('/', (req, res) => {
   res.redirect('/urls');
 });
 //urls page
 app.get("/urls", (req, res) => {
+  const userID = req.session.user_id;
+
   let templateVars = {
     username: '',
-    urls: urlDatabase
+    urls: urldForUsers(userID, urlDatabase)
   };
+
   //check if the user is logged in
-  if (isLogged) {
+  if (userID) {
     if (users[req.session.user_id]) {
       templateVars['username'] = users[req.session.user_id].username;
     }
@@ -67,17 +70,13 @@ app.post("/urls", (req, res) => {
   }
   const userId = req.session.user_id;
   const shrtURL = generateRandomString(6);
-  let isFound = false;
-  for (const id in urlDatabase) {
-    if (urlDatabase[id].longURL === longURL) {
-      isFound = true;
-      const templateVar = { username: users[req.session.user_id].username };
 
-      //render a page with error message
-      res.render('not_new_url', templateVar);
-    }
-  }
-  if (!isFound) {
+  //check if submitted url is in database
+  if (!isNewUrl(longURL, urlDatabase)) {
+    const templateVar = { username: users[req.session.user_id].username };
+    //render a page with error message
+    res.render('not_new_url', templateVar);
+  } else {
     urlDatabase[shrtURL] = { longURL, userId };
 
     res.redirect(`/urls/${shrtURL}`);
@@ -89,7 +88,7 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     username: '',
   };
-  if (isLogged) {
+  if (req.session.user_id) {
     if (users[req.session.user_id]) {
       templateVars['username'] = users[req.session.user_id].username;
     }
@@ -106,7 +105,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const user = {};
 
   //check if the user is logged in
-  if (isLogged) {
+  if (req.session.user_id) {
 
     //check if the url is in database
     if (!urlDatabase[req.params.shortURL]) {
@@ -136,7 +135,6 @@ app.get("/urls/:shortURL", (req, res) => {
       username: user.username
     };
 
-    // console.log(templateVars);
     res.render("urls_show", templateVars);
 
   } else {
@@ -153,16 +151,25 @@ app.post('/urls/:shortURL', (req, res) => {
   const longURL = req.body.url;
 
   const userId = req.session.user_id;
-  if (req.session.user_id === urlDatabase[req.params.shortURL].userId) {
 
-    urlDatabase[req.params.shortURL] = { longURL, userId };
-    res.redirect(`/urls`);
+  //check if submitted url is in database
+  if (isNewUrl(longURL, urlDatabase)) {
+    if (req.session.user_id === urlDatabase[req.params.shortURL].userId) {
+
+      urlDatabase[req.params.shortURL] = { longURL, userId };
+      res.redirect(`/urls`);
+
+    } else {
+      const templateVar = { username: users[req.session.user_id].username };
+
+      //render a page with error message
+      res.render('not_allowed', templateVar);
+    }
 
   } else {
     const templateVar = { username: users[req.session.user_id].username };
-
     //render a page with error message
-    res.render('not_allowed', templateVar);
+    res.render('not_new_url', templateVar);
   }
 
 });
@@ -177,19 +184,9 @@ app.get("/u/:shortURL", (req, res) => {
     res.render('not_valid_url', templateVar);
 
   } else {
-
-    //check if the user owns the URL
-    if (req.session.user_id === urlDatabase[req.params.shortURL].userId) {
-      let longURL = urlDatabase[req.params.shortURL].longURL;
-      res.redirect(longURL);
-    } else {
-      const templateVar = { username: users[req.session.user_id].username };
-
-      //render a page with error message
-      res.render('not_access', templateVar);
-
-    }
-
+    //redirect to corresponding URL
+    const longURL = urlDatabase[req.params.shortURL].longURL;
+    res.redirect(longURL);
   }
 });
 
@@ -211,7 +208,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
 //get for login
 app.get('/login', (req, res) => {
-  if (isLogged) {
+  if (req.session.user_id) {
     const templateVars = { username: users[req.session.user_id].username };
     res.render('not_logged_out', templateVars);
   } else {
@@ -224,16 +221,12 @@ app.get('/login', (req, res) => {
 //add cookie--login
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  for (const userId in users) {
-    const user = users[userId];
-    // console.log(getUserByEmail(req.body.username, users));
-    if (user.username === username) {
-      if (bcrypt.compareSync(password, user.password)) {
-        // log the user in (return) res.send
-        isLogged = true;
-        req.session.user_id = userId;
-        res.redirect('/urls');
-      }
+  const user = getUserByEmail(username, users);
+  if (user) {
+    if (bcrypt.compareSync(password, user.password)) {
+      // log the user in (return) res.send
+      req.session.user_id = user.id;
+      res.redirect('/urls');
     }
   }
   // final response
@@ -243,7 +236,6 @@ app.post('/login', (req, res) => {
 
 //add cookie--logout
 app.post('/logout', (req, res) => {
-  isLogged = false;
   req.session = null;
   res.redirect('/login');
 });
@@ -253,7 +245,7 @@ app.get('/register', (req, res) => {
   let templateVars = { username: "" };
 
   //check if the user is logged in
-  if (isLogged) {
+  if (req.session.user_id) {
     const templateVars = { username: users[req.session.user_id]['username'] };
     res.render('not_logged_out', templateVars);
   } else {
@@ -270,7 +262,6 @@ app.post('/register', (req, res) => {
     users[userId]['username'] = req.body.username;
     users[userId]['password'] = bcrypt.hashSync(req.body.password, 10);
     req.session.user_id = userId;
-    isLogged = true;
     res.redirect('/urls');
   } else {
     //render a page with error message if the user is not registered yet
@@ -278,6 +269,7 @@ app.post('/register', (req, res) => {
     res.render('not_registered', templateVar);
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);

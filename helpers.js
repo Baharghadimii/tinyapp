@@ -1,5 +1,5 @@
 //helper functions
-const generateRandomString = function (length) {
+const generateRandomString = function(length) {
 
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -11,17 +11,40 @@ const generateRandomString = function (length) {
 
 };
 
-const getUserByEmail = function (email, database) {
+const getUserByEmail = function(email, database) {
   // lookup magic...
   for (const user in database) {
     if (database[user]['username'] === email) {
-      return user;
+      return database[user];
     }
   }
+
+};
+//helper function that returns url list of given ID
+const urldForUsers = function(id, database) {
+  const temp = {};
+  for (const url in database) {
+    if (database[url]['userId'] === id) {
+      temp[url] = database[url];
+    }
+
+  }
+  return temp;
+};
+const isNewUrl = function(url, database) {
+
+  for (const id in database) {
+    if (database[id].longURL === url) {
+      return false;
+    }
+  }
+  return true;
 
 };
 
 module.exports = {
   generateRandomString,
-  getUserByEmail
+  getUserByEmail,
+  urldForUsers,
+  isNewUrl
 };
