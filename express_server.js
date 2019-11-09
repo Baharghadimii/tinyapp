@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 //setup
 const express = require("express");
 const cookieSession = require('cookie-session');
@@ -65,8 +66,8 @@ app.get("/urls", (req, res) => {
 app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
 
-  if (!longURL.includes('https://')) {
-    longURL = `https://${longURL}`;
+  if (!longURL.includes('http')) {
+    longURL = `http://${longURL}`;
   }
   const userId = req.session.user_id;
   const shrtURL = generateRandomString(6);
